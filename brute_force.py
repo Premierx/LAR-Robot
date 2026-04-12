@@ -64,10 +64,10 @@ ball_found   = False #False
 find_garage  = False #False 
 garage_found = False
 
-turning_90          = False  # True during the initial 90° turn after finding the ball
+turning_right          = False  # True during the initial 60° turn after finding the ball
 circling            = False
 get_ball_location   = True
-turn_90_start_theta = None
+turn_60_start_theta = None
 
 # Circle controller state
 ball_world_x    = 0.0
@@ -288,7 +288,7 @@ def parking(l1, l2):
     side = math.copysign(1, garage_parking_angle(l1, l2))  # 1: Left of garage (has to turn right first) ; -1: Right
     start_park=turtle.get_odometry()
     angle = garage_parking_angle(l1, l2)
-    turn_90_start_theta = math.degrees(turtle.get_odometry()[2])
+    turn_60_start_theta = math.degrees(turtle.get_odometry()[2])
     steering_angle = math.pi/2-side*garage_parking_angle(l1, l2)
     print(f"angle: {steering_angle}")
     center_distance = garage_center_distance(l1,l2)
@@ -316,7 +316,7 @@ def parking(l1, l2):
                 print("Turning to center", side)
                 state = 3
                 turtle.reset_odometry()
-                turn_90_start_theta = math.degrees(turtle.get_odometry()[2])
+                turn_60_start_theta = math.degrees(turtle.get_odometry()[2])
             else:
                 turtle.cmd_velocity(linear = 0.1, angular = 0.0)
 
@@ -355,7 +355,7 @@ def parking(l1, l2):
 # For better readability some repetitive tasks have been made into functions.
 def main():
     global ball_found, find_garage, garage_found, begin_parked
-    global turning_90, circling, turn_90_start_theta
+    global turning_right, circling, turn_60_start_theta
     global start_position, get_ball_location, touch, button
     global ball_world_x, ball_world_y, circle_swept, circle_prev_phi
     global garage_left_p_time, garage_right_p_time, pilon_time_diff, start_centre_time, front_clear, front_obstructed, got_start_park_time, time_diff_found,get_start_time
@@ -401,7 +401,7 @@ def main():
         # ------------------------------------------------------------------ #
         #  Phase 1: Find and approach the green ball                          #
         # ------------------------------------------------------------------ #
-        elif not ball_found and not begin_parked and not circling and not turning_90:
+        elif not ball_found and not begin_parked and not circling and not turning_right:
             mask = get_mask(hsv, LOWER_GREEN, UPPER_GREEN)
             cv2.imshow('mask', mask)
             out = cv2.connectedComponentsWithStats(mask)
@@ -425,7 +425,7 @@ def main():
             if depth is not None and depth <= STOP_DISTANCE:
                 stop()
                 ball_found = True
-                turning_90 = True
+                turning_right = True
 
 
 
@@ -442,22 +442,22 @@ def main():
 
 
                 ball_world_x, ball_world_y = world_coord(position, TURN_RADIUS)
-                turn_90_start_theta = math.degrees(position[2])
-                print(f"Ball reached. Starting 90° right turn. Odometry: {position}")
+                turn_60_start_theta = math.degrees(position[2])
+                print(f"Ball reached. Starting 60° right turn. Odometry: {position}")
                 continue
 
             drive(direction, slow)
             rate.sleep()
 
         # ------------------------------------------------------------------ #
-        #  Phase 2: Turn 90° right so we are tangent to the circle            #
+        #  Phase 2: Turn 60° right so we are tangent to the circle            #
         # ------------------------------------------------------------------ #
-        elif turning_90 and not circling and not find_garage:
+        elif turning_right and not circling and not find_garage:
             current_theta = math.degrees(turtle.get_odometry()[2])
-            turned =angle_diff(turn_90_start_theta, current_theta)
+            turned =angle_diff(turn_60_start_theta, current_theta)
             print(f"Turned: {turned}")
             if abs(turned) < 0.1:
-                print(f"DEBUG turning_90: start={turn_90_start_theta:.2f}°  current={current_theta:.2f}°")
+                print(f"DEBUG turning_right: start={turn_60_start_theta:.2f}°  current={current_theta:.2f}°")
 
             if turned >= -TURN_RIGHT:  # still need to turn right
                 turtle.cmd_velocity(angular=-0.2)
@@ -466,8 +466,8 @@ def main():
                 continue
             else:
                 stop()
-                print("90° turn completed. Starting circle.")
-                turning_90 = False
+                print("60° turn completed. Starting circle.")
+                turning_right = False
                 circling   = True
 
                 # Initialise swept-angle tracker
