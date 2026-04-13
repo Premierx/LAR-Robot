@@ -207,7 +207,6 @@ def get_out():
 
 def emergency_park():
     start = math.degrees(turtle.get_odometry()[2])
-    print(f"Emergency parking initiated. Current angle: {start:.2f}°")
     rate = Rate(10)
     while True:
         current = math.degrees(turtle.get_odometry()[2])
