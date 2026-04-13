@@ -185,30 +185,32 @@ def get_out():
         if dist is not None and dist > 1.0: front_clear = True
         if dist is not None and dist <= 1.0: front_obstructed = True
     
-    if front_obstructed and get_depth_at(400,150) < 1.0:
-        turtle.cmd_velocity(angular = turn_speed / 1.5)
-        return 0
+    if front_obstructed:
+        centre_right_dist = get_depth_at(400,150)
+        if centre_right_dist is not None and centre_right_dist < 1.0:
+            turtle.cmd_velocity(angular = turn_speed / 1.5)
+            return 0
 
     elif front_clear and not time_diff_found:
         if not got_start_park_time:
-            left_p_dist = get_depth_at(50,150)
+            left_p_dist = get_depth_at(100,150)
 
-            if left_p_dist > 1.0:
+            if left_p_dist is not None and left_p_dist > 1.0:
                 turtle.cmd_velocity(angular = turn_speed)
                 return 0
 
-            if left_p_dist <= 1.0:
+            if left_p_dist is not None and left_p_dist <= 1.0:
                 garage_left_p_time = get_time()
                 got_start_park_time = True
                 return 0
             
         else:
-            right_p_dist = get_depth_at(590,150)
-            if right_p_dist  > 1.0:
-                turtle.cmd_velocity(angular = -turn_speed)
+            right_p_dist = get_depth_at(520,150)
+            if right_p_dist is not None and right_p_dist  > 1.0:
+                turtle.cmd_velocity(angular = -turn_speed / 2)
                 return 0
             
-            if right_p_dist <= 1.0:
+            if  right_p_dist is not None and right_p_dist <= 1.0:
                 garage_right_p_time = get_time()
                 pilon_time_diff = garage_right_p_time - garage_left_p_time
                 time_diff_found = True
@@ -220,7 +222,7 @@ def get_out():
             get_start_time = False
 
         if get_time() - start_centre_time < pilon_time_diff / 2:
-            turtle.cmd_velocity(angular = turn_speed)
+            turtle.cmd_velocity(angular = turn_speed / 2)
             return 0
         
         else:
