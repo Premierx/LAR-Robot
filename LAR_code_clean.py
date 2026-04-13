@@ -234,7 +234,6 @@ def get_out():
 def emergency_park():
     global garage_found
     start = math.degrees(turtle.get_odometry()[2])
-    print(f"Emergency parking initiated. Current angle: {start:.2f}°")
     rate = Rate(10)
     while True:
         current = math.degrees(turtle.get_odometry()[2])
@@ -449,8 +448,6 @@ def main():
             direction = check_direction(cx)
             depth = get_depth_at(cx, cy)
 
-            print(f"Distance of the ball: {depth:.2f} m" if depth else "Ball distance unavailable.")
-
             if depth is not None and depth <= 1.2 and depth > STOP_DISTANCE:
                 slow = 1
             else:
@@ -461,23 +458,16 @@ def main():
                 ball_found = True
                 turning_90 = True
 
-
-
                 # Capture ball world position right when we stop
                 position = turtle.get_odometry()
 
-                # TODO: Just test
                 if start_position is not None:
-                    dist_from_start = math.sqrt(
-                        (position[0] - start_position[0])**2 + 
-                        (position[1] - start_position[1])**2
-                    )
+                    dist_from_start = math.sqrt((position[0] - start_position[0])**2 + (position[1] - start_position[1])**2)
                     ball_close = dist_from_start < BALL_CLOSE_THRESHOLD
-
 
                 ball_world_x, ball_world_y = world_coord(position, TURN_RADIUS)
                 turn_90_start_theta = math.degrees(position[2])
-                print(f"Ball reached. Starting 90° right turn. Odometry: {position}")
+                print(f"Ball reached. Starting 90° right turn.")
                 continue
 
             drive(direction, slow)
@@ -490,12 +480,8 @@ def main():
             current_theta = math.degrees(turtle.get_odometry()[2])
             turned =angle_diff(turn_90_start_theta, current_theta)
             print(f"Turned: {turned}")
-            if abs(turned) < 0.1:
-                print(f"DEBUG turning_90: start={turn_90_start_theta:.2f}°  current={current_theta:.2f}°")
-
             if turned >= -TURN_RIGHT:  # still need to turn right
                 turtle.cmd_velocity(angular=-0.2)
-                print(f"Turning right: {turned:.1f} / {TURN_RIGHT:.1f}°")
                 rate.sleep()
                 continue
             else:
@@ -506,10 +492,7 @@ def main():
 
                 # Initialise swept-angle tracker
                 odom = turtle.get_odometry()
-                circle_prev_phi = math.atan2(
-                    odom[1] - ball_world_y,
-                    odom[0] - ball_world_x
-                )
+                circle_prev_phi = math.atan2(odom[1] - ball_world_y, odom[0] - ball_world_x)
                 circle_swept = 0.0
                 continue
 
@@ -530,22 +513,15 @@ def main():
             phi = math.atan2(dy, dx)  # angle from ball centre → robot
 
             # Accumulate swept angle robustly (handles ±π wrap)
-            d_phi = math.atan2(
-                math.sin(phi - circle_prev_phi),
-                math.cos(phi - circle_prev_phi)
-            )
+            d_phi = math.atan2(math.sin(phi - circle_prev_phi), math.cos(phi - circle_prev_phi))
             circle_swept    += math.degrees(abs(d_phi))
             circle_prev_phi  = phi
-
-            print(f"Circling: {circle_swept:.1f} / {CIRCLE_ANGLE:.1f}°  "
-                  f"dist={current_dist:.2f} m  err={dist_error:+.3f}")
 
             if circle_swept >= CIRCLE_ANGLE:
                 stop()
                 print("Circle complete. Looking for garage.")
                 circling    = False
 
-                #TODO: Just test
                 if ball_close  != 0 and not find_garage:
                     emergency_park()
                     print("IN GARAGE; TASK DONE")
@@ -554,7 +530,6 @@ def main():
                     break
                 else:
                     find_garage = True
-
                 continue
 
             # Desired heading = tangent to circle (counter-clockwise)
@@ -568,7 +543,6 @@ def main():
 
             angular_ff = CIRCLE_LINEAR/STOP_DISTANCE
             angular = max(-1.0, min(1.0, angular_ff- KP_HEADING * heading_error - KD_DIST * dist_error))
-            print(f"Angular speed: {angular}")
             turtle.cmd_velocity(linear=CIRCLE_LINEAR, angular=angular)
             rate.sleep()
             continue
