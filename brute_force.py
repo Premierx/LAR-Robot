@@ -256,7 +256,6 @@ def world_coord(odometry, distance):
     rx, ry, rtheta = odometry[0], odometry[1], odometry[2]
     bx = rx + distance * math.cos(rtheta)
     by = ry + distance * math.sin(rtheta)
-    #print(f"Ball world position: ({bx:.3f}, {by:.3f})")
     return bx, by
 
 
@@ -425,24 +424,16 @@ def main():
                 stop()
                 ball_found = True
                 turning_right = True
-
-
-
                 # Capture ball world position right when we stop
                 position = turtle.get_odometry()
 
-                # TODO: Just test
                 if start_position is not None:
                     dist_from_start = math.sqrt(
-                        (position[0] - start_position[0])**2 + 
-                        (position[1] - start_position[1])**2
-                    )
+                        (position[0] - start_position[0])**2 + (position[1] - start_position[1])**2)
                     ball_close = dist_from_start < BALL_CLOSE_THRESHOLD
-
 
                 ball_world_x, ball_world_y = world_coord(position, TURN_RADIUS)
                 turn_60_start_theta = math.degrees(position[2])
-                print(f"Ball reached. Starting 60° right turn. Odometry: {position}")
                 continue
 
             drive(direction, slow)
@@ -454,27 +445,19 @@ def main():
         elif turning_right and not circling and not find_garage:
             current_theta = math.degrees(turtle.get_odometry()[2])
             turned =angle_diff(turn_60_start_theta, current_theta)
-            print(f"Turned: {turned}")
-            if abs(turned) < 0.1:
-                print(f"DEBUG turning_right: start={turn_60_start_theta:.2f}°  current={current_theta:.2f}°")
 
             if turned >= -TURN_RIGHT:  # still need to turn right
                 turtle.cmd_velocity(angular=-0.2)
-                print(f"Turning right: {turned:.1f} / {TURN_RIGHT:.1f}°")
                 rate.sleep()
                 continue
             else:
                 stop()
-                print("60° turn completed. Starting circle.")
                 turning_right = False
                 circling   = True
 
                 # Initialise swept-angle tracker
                 odom = turtle.get_odometry()
-                circle_prev_phi = math.atan2(
-                    odom[1] - ball_world_y,
-                    odom[0] - ball_world_x
-                )
+                circle_prev_phi = math.atan2(odom[1] - ball_world_y, odom[0] - ball_world_x)
                 circle_swept = 0.0
                 continue
 
@@ -495,22 +478,14 @@ def main():
             phi = math.atan2(dy, dx)  # angle from ball centre → robot
 
             # Accumulate swept angle robustly (handles ±π wrap)
-            d_phi = math.atan2(
-                math.sin(phi - circle_prev_phi),
-                math.cos(phi - circle_prev_phi)
-            )
+            d_phi = math.atan2(math.sin(phi - circle_prev_phi), math.cos(phi - circle_prev_phi))
             circle_swept    += math.degrees(abs(d_phi))
             circle_prev_phi  = phi
 
-            print(f"Circling: {circle_swept:.1f} / {CIRCLE_ANGLE:.1f}°  "
-                  f"dist={current_dist:.2f} m  err={dist_error:+.3f}")
-
             if circle_swept >= CIRCLE_ANGLE:
                 stop()
-                print("Circle complete. Looking for garage.")
                 circling    = False
 
-                #TODO: Just test
                 if ball_close  != 0 and not find_garage:
                     emergency_park()
                     print("IN GARAGE; TASK DONE")
@@ -522,18 +497,12 @@ def main():
 
                 continue
 
-            # Desired heading = tangent to circle (counter-clockwise)
-            # Flip signs for clockwise:  math.atan2(math.cos(phi), -math.sin(phi))
             desired_heading = math.atan2(-math.cos(phi), math.sin(phi))
 
-            heading_error = math.atan2(
-                math.sin(desired_heading - rtheta),
-                math.cos(desired_heading - rtheta)
-            )
+            heading_error = math.atan2(math.sin(desired_heading - rtheta), math.cos(desired_heading - rtheta))
 
             angular_ff = CIRCLE_LINEAR/STOP_DISTANCE
             angular = max(-1.0, min(1.0, angular_ff- KP_HEADING * heading_error - KD_DIST * dist_error))
-            print(f"Angular speed: {angular}")
             turtle.cmd_velocity(linear=CIRCLE_LINEAR, angular=angular)
             rate.sleep()
             continue
