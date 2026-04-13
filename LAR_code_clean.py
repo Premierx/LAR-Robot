@@ -309,20 +309,22 @@ def get_angle(l1, l2, side):
     return side*garage_parking_angle(l1, l2) - math.atan2( (side*garage_center_distance(l1,l2) - GARAGE_WIDTH/2) , (garage_parking_distance(l1, l2)-GARAGE_DEPTH/2) )
 # ^ ^ ^ Parking functions ^ ^ ^
 
+# ================================================================ #
+#   Main parking function
+#   STATES: 0: Stop, 1: Turning to center, 2: Driving to center, 3: Turning to garage, 4: Driving to garage
+# ================================================================ #
 def parking(l1, l2):
-    # STATES: 0: Stop, 1: Turning to center, 2: Driving to center, 3: Turning to garage, 4: Driving to garage
+    global touch
+    rate = Rate(10)
     state = 1
     start_time = get_time()
-    rate = Rate(10)
-    global touch
-
+    
     side = math.copysign(1, garage_parking_angle(l1, l2))  # 1: Left of garage (has to turn right first) ; -1: Right
     steering_angle = math.pi/2-side*garage_parking_angle(l1, l2)
     center_distance = garage_center_distance(l1,l2)
     turtle.reset_odometry()
 
     while touch[1] == 0 and not turtle.is_shutting_down():
-
         if touch[1] == 1:  # Finding out about the bump
             turtle.cmd_velocity(linear=0, angular=0)
             continue
@@ -330,43 +332,37 @@ def parking(l1, l2):
         if cv2.waitKey(1) & 0xFF == ord('q'): break
 
         if state == 1:  # Turning to center
-
             turned = turtle.get_odometry()[2]
             print(f"turned{turned},    `   steering_angle {steering_angle}")
             if -side * turned >= steering_angle:
                 state = 2
                 turtle.reset_odometry()
+                
             else:
-                turtle.cmd_velocity(linear=0, angular=-side * 0.3)
+                turtle.cmd_velocity(linear = 0, angular = -side * 0.3)
 
         elif state == 2:  # Driving to center
             curr_pos = turtle.get_odometry()
-            # print(f"curr_pos[0]{curr_pos[0]} center_distance{center_distance}")
-
             if curr_pos[0] >= side * center_distance / 100:
                 state = 3
                 turtle.reset_odometry()
+                
             else:
-                if curr_pos[2] > 0:
-                    turtle.cmd_velocity(linear=0.1, angular=-0.2)
-                elif curr_pos[2] < 0:
-                    turtle.cmd_velocity(linear=0.1, angular=0.2)
-                else:
-                    turtle.cmd_velocity(linear=0.1, angular=0.0)
+                if curr_pos[2] > 0: turtle.cmd_velocity(linear=0.1, angular=-0.2)
+                elif curr_pos[2] < 0: turtle.cmd_velocity(linear=0.1, angular=0.2)
+                else: turtle.cmd_velocity(linear=0.1, angular=0.0)
                 rate.sleep()
 
         elif state == 3:  # Turning to garage
             turned = abs(turtle.get_odometry()[2])
-
-            # print(f"{turned},    `    {steering_angle}")
             if turned >= math.pi / 2:
                 state = 4
                 turtle.reset_odometry()
+                
             else:
                 turtle.cmd_velocity(angular=side * 0.3)
 
         elif state == 4:  # Driving to garage
-
             depth = get_depth_at(SCREEN_CENTER_X, SCREEN_CENTER_Y + 50)
 
             if depth is not None and depth <= PARKING_DISTANCE:
@@ -374,13 +370,11 @@ def parking(l1, l2):
                 garage_found = True
                 print("Parking finished")
                 state = 0
+                
             else:
-                if turtle.get_odometry()[2] > 0:
-                    turtle.cmd_velocity(linear=0.1, angular=-0.2)
-                elif turtle.get_odometry()[2] < 0:
-                    turtle.cmd_velocity(linear=0.1, angular=0.2)
-                else:
-                    turtle.cmd_velocity(linear=0.1, angular=0.0)
+                if turtle.get_odometry()[2] > 0: turtle.cmd_velocity(linear = 0.1, angular = -0.2)
+                elif turtle.get_odometry()[2] < 0: turtle.cmd_velocity(linear = 0.1, angular = 0.2)
+                else: turtle.cmd_velocity(linear = 0.1, angular = 0.0)
                 rate.sleep()
 
         if state == 0:
