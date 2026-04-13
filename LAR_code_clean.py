@@ -30,9 +30,6 @@ GARAGE_DEPTH = 44
 SCREEN_CENTER_Y = 239
 PARKING_DISTANCE = 0.45
 
-DRIVING_TO_GARAGE_AXIS = 100 #DRIVING_TO_GARAGE_AXIS; the higher the number, the shorter distance
-TURNING_TO_GARAGE = 1.35 #TURNING_TO_GARAGE; the higher the number the more turn
-
 # HSV constraints and mask filters
 LOWER_GREEN = np.array([35,  60,  60])
 UPPER_GREEN = np.array([90, 255, 255])
@@ -310,9 +307,6 @@ def garage_parking_angle(l1, l2):
 
 def get_angle(l1, l2, side):
     return side*garage_parking_angle(l1, l2) - math.atan2( (side*garage_center_distance(l1,l2) - GARAGE_WIDTH/2) , (garage_parking_distance(l1, l2)-GARAGE_DEPTH/2) )
-
-def get_duration(target, speed):
-    return abs(target / speed)
 # ^ ^ ^ Parking functions ^ ^ ^
 
 def parking(l1, l2):
@@ -320,51 +314,60 @@ def parking(l1, l2):
     state = 1
     start_time = get_time()
     rate = Rate(10)
+    global touch
 
     side = math.copysign(1, garage_parking_angle(l1, l2))  # 1: Left of garage (has to turn right first) ; -1: Right
-    start_park=turtle.get_odometry()
-    angle = garage_parking_angle(l1, l2)
-    turn_60_start_theta = math.degrees(turtle.get_odometry()[2])
     steering_angle = math.pi/2-side*garage_parking_angle(l1, l2)
-    print(f"angle: {steering_angle}")
     center_distance = garage_center_distance(l1,l2)
     turtle.reset_odometry()
 
-    while True:
+    while touch[1] == 0 and not turtle.is_shutting_down():
+
+        if touch[1] == 1:  # Finding out about the bump
+            turtle.cmd_velocity(linear=0, angular=0)
+            continue
+
         if cv2.waitKey(1) & 0xFF == ord('q'): break
 
         if state == 1:  # Turning to center
 
             turned = turtle.get_odometry()[2]
-            if -side*turned >= steering_angle: 
+            print(f"turned{turned},    `   steering_angle {steering_angle}")
+            if -side * turned >= steering_angle:
                 state = 2
                 turtle.reset_odometry()
             else:
-                turtle.cmd_velocity(linear =0, angular=-side*0.3)
+                turtle.cmd_velocity(linear=0, angular=-side * 0.3)
 
         elif state == 2:  # Driving to center
             curr_pos = turtle.get_odometry()
-            print(f"curr_pos[0]{curr_pos[0]} center_distance{center_distance}")
-            if curr_pos[0] >= side*center_distance/100:
-                print("Turning to center", side)
+            # print(f"curr_pos[0]{curr_pos[0]} center_distance{center_distance}")
+
+            if curr_pos[0] >= side * center_distance / 100:
                 state = 3
                 turtle.reset_odometry()
-                turn_60_start_theta = math.degrees(turtle.get_odometry()[2])
             else:
-                turtle.cmd_velocity(linear = 0.1, angular = 0.0)
+                if curr_pos[2] > 0:
+                    turtle.cmd_velocity(linear=0.1, angular=-0.2)
+                elif curr_pos[2] < 0:
+                    turtle.cmd_velocity(linear=0.1, angular=0.2)
+                else:
+                    turtle.cmd_velocity(linear=0.1, angular=0.0)
+                rate.sleep()
 
         elif state == 3:  # Turning to garage
             turned = abs(turtle.get_odometry()[2])
 
-            #print(f"{turned},    `    {steering_angle}")
-            if turned >= math.pi/2: 
+            # print(f"{turned},    `    {steering_angle}")
+            if turned >= math.pi / 2:
                 state = 4
+                turtle.reset_odometry()
             else:
-                turtle.cmd_velocity(angular = side*0.3)
+                turtle.cmd_velocity(angular=side * 0.3)
 
         elif state == 4:  # Driving to garage
 
-            depth = get_depth_at(SCREEN_CENTER_X, SCREEN_CENTER_Y+50)
+            depth = get_depth_at(SCREEN_CENTER_X, SCREEN_CENTER_Y + 50)
 
             if depth is not None and depth <= PARKING_DISTANCE:
                 stop()
@@ -373,11 +376,11 @@ def parking(l1, l2):
                 state = 0
             else:
                 if turtle.get_odometry()[2] > 0:
-                    turtle.cmd_velocity(linear = 0.1, angular = -0.2)
+                    turtle.cmd_velocity(linear=0.1, angular=-0.2)
                 elif turtle.get_odometry()[2] < 0:
-                    turtle.cmd_velocity(linear = 0.1, angular = 0.2)
+                    turtle.cmd_velocity(linear=0.1, angular=0.2)
                 else:
-                    turtle.cmd_velocity(linear = 0.1, angular = 0.0)
+                    turtle.cmd_velocity(linear=0.1, angular=0.0)
                 rate.sleep()
 
         if state == 0:
