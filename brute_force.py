@@ -160,49 +160,58 @@ def stop():
 
 
 def get_out():
-    global garage_left_p_time, garage_right_p_time, pilon_time_diff, start_centre_time, front_clear, front_obstructed, got_start_park_time, time_diff_found, get_start_time
+    global garage_left_p_time, garage_right_p_time, pilon_time_diff, start_centre_time
+    global front_clear, front_obstructed, got_start_park_time, time_diff_found, get_start_time
     turn_speed = 0.5
+    
     if front_clear == False and front_obstructed == False:
-        dist = int(get_depth_at(319, 150))
-        if dist is not  None and dist > 1.0:
-            front_clear = True
-        if dist is not None and dist <= 1.0:
-            front_obstructed = True
-    if front_obstructed and int(get_depth_at(400,150))<1:
-        turtle.cmd_velocity(angular = turn_speed/1.5)
-        return 0
+        dist = get_depth_at(319, 150)
+        if dist is not None and dist > 1.0: front_clear = True
+        if dist is not None and dist <= 1.0: front_obstructed = True
+    
+    if front_obstructed:
+        centre_right_dist = get_depth_at(400,150)
+        if centre_right_dist is not None and centre_right_dist < 1.0:
+            turtle.cmd_velocity(angular = turn_speed / 1.5)
+            return 0
 
     elif front_clear and not time_diff_found:
         if not got_start_park_time:
-            left_p_dist = int(get_depth_at(50,150))
+            left_p_dist = get_depth_at(100,150)
 
-            if left_p_dist > 1.0:
+            if left_p_dist is not None and left_p_dist > 1.0:
                 turtle.cmd_velocity(angular = turn_speed)
                 return 0
 
-            if left_p_dist <= 1:
+            if left_p_dist is not None and left_p_dist <= 1.0:
                 garage_left_p_time = get_time()
                 got_start_park_time = True
                 return 0
+            
         else:
-            right_p_dist = int(get_depth_at(590,150))
-            if right_p_dist  > 1.0:
-                turtle.cmd_velocity(angular = -turn_speed)
+            right_p_dist = get_depth_at(520,150)
+            if right_p_dist is not None and right_p_dist  > 1.0:
+                turtle.cmd_velocity(angular = -turn_speed / 2)
                 return 0
-            if right_p_dist <= 1:
+            
+            if  right_p_dist is not None and right_p_dist <= 1.0:
                 garage_right_p_time = get_time()
                 pilon_time_diff = garage_right_p_time - garage_left_p_time
                 time_diff_found = True
                 return 0
+            
     elif time_diff_found:
         if get_start_time:
             start_centre_time = get_time()
             get_start_time = False
-        if get_time()- start_centre_time < pilon_time_diff/2:
-            turtle.cmd_velocity(angular=turn_speed)
+
+        if get_time() - start_centre_time < pilon_time_diff / 2:
+            turtle.cmd_velocity(angular = turn_speed / 2)
             return 0
+        
         else:
             return 1
+        
     return 1
 
 def emergency_park():
